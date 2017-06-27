@@ -25,6 +25,10 @@ dependencies {
 
     implementation 'org.apache.tez:tez-api:0.8.5'
 
+    implementation 'org.apache.tez:tez-runtime-library:0.8.5'
+
+    implementation 'org.apache.tez:tez-mapreduce:0.8.5'
+
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
