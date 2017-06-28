@@ -9,7 +9,10 @@ public class HelloWorldTest {
     @Test
     public void run() throws Exception {
         HelloWorld helloWorld = new HelloWorld();
-        assertTrue(helloWorld.run(new String[]{"hello", "world"}) == 0);
+        String input = "src/test/resources/input.txt";
+        String output = "build/" + HelloWorldTest.class.getSimpleName() + "/output";
+        String localMode = "true";
+        assertTrue(helloWorld.run(new String[]{input, output, localMode}) == 0);
     }
 
 }
