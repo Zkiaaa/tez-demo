@@ -13,13 +13,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.*;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.hadoop.shim.HadoopShim;
-import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -168,12 +165,6 @@ public class HelloWorld extends Configured implements Tool {
             // Set up caller context
             ApplicationId appId = tezClient.getAppMasterApplicationId();
             CallerContext callerContext = CallerContext.create("HelloWorldContext", "Caller id: " + appId, "HelloWorldType", "Tez HelloWorld DAG: " + dag.getName());
-            HadoopShim hadoopShim = new HadoopShimsLoader(tezConf).getHadoopShim();
-
-            if (appId != null) {
-                TezUtilsInternal.setHadoopCallerContext(hadoopShim, appId);
-                callerContext.setCallerIdAndType(appId.toString(), "TezExampleApplication");
-            }
             dag.setCallerContext(callerContext);
 
             // Submit DAG and wait for completion
