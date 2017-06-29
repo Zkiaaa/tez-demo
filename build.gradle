@@ -18,9 +18,6 @@ repositories {
 
 dependencies {
 
-    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
-    compile 'com.google.guava:guava:20.0'
-
     compile 'org.apache.tez:tez-api:0.8.5'
 
     compile 'org.apache.tez:tez-runtime-library:0.8.5'
