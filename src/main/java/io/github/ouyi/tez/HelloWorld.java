@@ -42,8 +42,8 @@ public class HelloWorld extends Configured implements Tool {
     private static final String TOKENIZER_VERTEX = "TokenizerVertex";
     private static final String SUMMATION_VERTEX = "SummationVertex";
     private static final String OUTPUT = "Output";
-
-    private static Logger LOGGER = LoggerFactory.getLogger(HelloWorld.class);
+    private static final int PARALLELISM = 1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(HelloWorld.class);
 
     public static class TokenProcessor extends SimpleProcessor {
         private final IntWritable one = new IntWritable(1);
@@ -94,57 +94,51 @@ public class HelloWorld extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
+        // Parse args
         LOGGER.info(Arrays.toString(args));
         String inputPath = args[0];
         String outputPath = args[1];
-        boolean localMode = Boolean.parseBoolean(args[2]);
-        int numPartitions = Integer.parseInt(args.length > 3 ? args[3] : "1");
+        boolean localMode = args.length > 2 ? Boolean.parseBoolean(args[2]) : false;
 
+        // Setup configs
         Configuration conf = Optional.ofNullable(getConf()).orElse(new Configuration());
         TezConfiguration tezConf = new TezConfiguration(conf);
-
         if (localMode) {
             tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, localMode);
         }
 
+        // Create and run DAG
         TezClient tezClient = TezClient.create(getClass().getSimpleName(), tezConf);
-        LOGGER.info(tezClient.toString());
-
-        DAG dag = createDAG(inputPath, outputPath, numPartitions, tezConf);
-        LOGGER.info(dag.toString());
-
-        runDag(dag, tezClient, tezConf);
-        return 0;
+        DAG dag = createDAG(inputPath, outputPath, tezConf);
+        return runDAG(dag, tezClient, tezConf);
     }
 
-    private DAG createDAG(String inputPath, String outputPath, int numPartitions, TezConfiguration conf) {
-        DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(conf), TextInputFormat.class, inputPath)
+    private DAG createDAG(String inputPath, String outputPath, TezConfiguration tezConf) {
+        // Create the tokenizer vertex with the input data source and TextInputFormat
+        DataSourceDescriptor dataSourceDescriptor = MRInput.createConfigBuilder(new Configuration(tezConf), TextInputFormat.class, inputPath)
                 .groupSplits(!isDisableSplitGrouping())
                 .generateSplitsInAM(!isGenerateSplitInClient())
                 .build();
-        LOGGER.info(dataSource.toString());
         Vertex tokenizerVertex = Vertex.create(TOKENIZER_VERTEX, ProcessorDescriptor.create(TokenProcessor.class.getName()))
-                .addDataSource(INPUT, dataSource);
-        LOGGER.info(tokenizerVertex.toString());
+                .addDataSource(INPUT, dataSourceDescriptor);
 
-        DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(conf), TextOutputFormat.class, outputPath)
+        // Create the summation vertex with the output data source and TextOutputFormat
+        DataSinkDescriptor dataSinkDescriptor = MROutput.createConfigBuilder(new Configuration(tezConf), TextOutputFormat.class, outputPath)
                 .build();
-        LOGGER.info(dataSink.toString());
-        Vertex summationVertex = Vertex.create(SUMMATION_VERTEX, ProcessorDescriptor.create(SumProcessor.class.getName()), numPartitions)
-                .addDataSink(OUTPUT, dataSink);
-        LOGGER.info(summationVertex.toString());
+        Vertex summationVertex = Vertex.create(SUMMATION_VERTEX, ProcessorDescriptor.create(SumProcessor.class.getName()), PARALLELISM)
+                .addDataSink(OUTPUT, dataSinkDescriptor);
 
-        OrderedPartitionedKVEdgeConfig edgeConfig = OrderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName(), HashPartitioner.class.getName())
-                .setFromConfiguration(conf)
+        // Create a key-value edge with Text key type and IntWritable value type
+        OrderedPartitionedKVEdgeConfig edgeConfig = OrderedPartitionedKVEdgeConfig
+                .newBuilder(Text.class.getName(), IntWritable.class.getName(), HashPartitioner.class.getName())
+                .setFromConfiguration(tezConf)
                 .build();
-        LOGGER.info(edgeConfig.toString());
+        Edge edge = Edge.create(tokenizerVertex, summationVertex, edgeConfig.createDefaultEdgeProperty());
 
         DAG dag = DAG.create("HelloWorld DAG")
                 .addVertex(tokenizerVertex)
                 .addVertex(summationVertex)
-                .addEdge(Edge.create(tokenizerVertex, summationVertex, edgeConfig.createDefaultEdgeProperty()));
-        LOGGER.info(dag.toString());
-
+                .addEdge(edge);
         return dag;
     }
 
@@ -156,7 +150,7 @@ public class HelloWorld extends Configured implements Tool {
         return false;
     }
 
-    public int runDag(DAG dag, TezClient tezClient, TezConfiguration tezConf) throws TezException,
+    public int runDAG(DAG dag, TezClient tezClient, TezConfiguration tezConf) throws TezException,
             InterruptedException, IOException {
         try {
             tezClient.start();
