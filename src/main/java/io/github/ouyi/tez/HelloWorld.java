@@ -24,6 +24,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
@@ -105,6 +106,8 @@ public class HelloWorld extends Configured implements Tool {
         TezConfiguration tezConf = new TezConfiguration(conf);
         if (localMode) {
             tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, localMode);
+            conf.set("fs.default.name", "file:///");
+            conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
         }
 
         // Create and run DAG
@@ -170,7 +173,7 @@ public class HelloWorld extends Configured implements Tool {
             if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
                 return 0;
             } else {
-                LOGGER.info("DAG diagnostics: " + dagStatus.getDiagnostics());
+                LOGGER.error("DAG diagnostics: " + dagStatus.getDiagnostics());
                 return -1;
             }
         } finally {
