@@ -13,10 +13,13 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.*;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -94,7 +97,7 @@ public class HelloWorld extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
-        System.out.println(Arrays.toString(args));
+        LOGGER.info(Arrays.toString(args));
         String inputPath = args[0];
         String outputPath = args[1];
         boolean localMode = Boolean.parseBoolean(args[2]);
@@ -108,38 +111,42 @@ public class HelloWorld extends Configured implements Tool {
         }
 
         TezClient tezClient = TezClient.create(getClass().getSimpleName(), tezConf);
-        System.out.println(tezClient);
+        LOGGER.info(tezClient.toString());
 
-        DAG dag = createDAG(inputPath, outputPath, numPartitions, conf);
-        System.out.println(dag);
+        DAG dag = createDAG(inputPath, outputPath, numPartitions, tezConf);
+        LOGGER.info(dag.toString());
 
-        runDag(dag, tezClient, LOGGER);
+        runDag(dag, tezClient, tezConf);
         return 0;
     }
 
-    private DAG createDAG(String inputPath, String outputPath, int numPartitions, Configuration conf) {
-        DataSourceDescriptor dataSource = MRInput.createConfigBuilder(conf, TextInputFormat.class, inputPath)
+    private DAG createDAG(String inputPath, String outputPath, int numPartitions, TezConfiguration conf) {
+        DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(conf), TextInputFormat.class, inputPath)
                 .groupSplits(!isDisableSplitGrouping())
                 .generateSplitsInAM(!isGenerateSplitInClient())
                 .build();
+        LOGGER.info(dataSource.toString());
         Vertex tokenizerVertex = Vertex.create(TOKENIZER_VERTEX, ProcessorDescriptor.create(TokenProcessor.class.getName()))
                 .addDataSource(INPUT, dataSource);
+        LOGGER.info(tokenizerVertex.toString());
 
-        DataSinkDescriptor dataSink = MROutput.createConfigBuilder(conf, TextOutputFormat.class, outputPath)
+        DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(conf), TextOutputFormat.class, outputPath)
                 .build();
+        LOGGER.info(dataSink.toString());
         Vertex summationVertex = Vertex.create(SUMMATION_VERTEX, ProcessorDescriptor.create(SumProcessor.class.getName()), numPartitions)
                 .addDataSink(OUTPUT, dataSink);
+        LOGGER.info(summationVertex.toString());
 
-        EdgeProperty edgeProperty = OrderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName(), HashPartitioner.class.getName())
+        OrderedPartitionedKVEdgeConfig edgeConfig = OrderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName(), HashPartitioner.class.getName())
                 .setFromConfiguration(conf)
-                .build()
-                .createDefaultEdgeProperty();
-        Edge edge = Edge.create(tokenizerVertex, summationVertex, edgeProperty);
+                .build();
+        LOGGER.info(edgeConfig.toString());
 
         DAG dag = DAG.create("HelloWorld DAG")
                 .addVertex(tokenizerVertex)
                 .addVertex(summationVertex)
-                .addEdge(edge);
+                .addEdge(Edge.create(tokenizerVertex, summationVertex, edgeConfig.createDefaultEdgeProperty()));
+        LOGGER.info(dag.toString());
 
         return dag;
     }
@@ -152,7 +159,7 @@ public class HelloWorld extends Configured implements Tool {
         return false;
     }
 
-    public int runDag(DAG dag, TezClient tezClient, Logger logger) throws TezException,
+    public int runDag(DAG dag, TezClient tezClient, TezConfiguration tezConf) throws TezException,
             InterruptedException, IOException {
         try {
             tezClient.start();
@@ -161,6 +168,12 @@ public class HelloWorld extends Configured implements Tool {
             // Set up caller context
             ApplicationId appId = tezClient.getAppMasterApplicationId();
             CallerContext callerContext = CallerContext.create("HelloWorldContext", "Caller id: " + appId, "HelloWorldType", "Tez HelloWorld DAG: " + dag.getName());
+            HadoopShim hadoopShim = new HadoopShimsLoader(tezConf).getHadoopShim();
+
+            if (appId != null) {
+                TezUtilsInternal.setHadoopCallerContext(hadoopShim, appId);
+                callerContext.setCallerIdAndType(appId.toString(), "TezExampleApplication");
+            }
             dag.setCallerContext(callerContext);
 
             // Submit DAG and wait for completion
@@ -172,7 +185,7 @@ public class HelloWorld extends Configured implements Tool {
             if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
                 return 0;
             } else {
-                logger.info("DAG diagnostics: " + dagStatus.getDiagnostics());
+                LOGGER.info("DAG diagnostics: " + dagStatus.getDiagnostics());
                 return -1;
             }
         } finally {
