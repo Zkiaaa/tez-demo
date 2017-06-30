@@ -1,5 +1,9 @@
 # What is this about
 
+Apache Tez is a generalization and successor of the Hadoop MapReduce
+implementation. Apache Pig and Hive have already switched to use Tez as the
+default execution engine.
+
 The tez-helloword project provides code example for a very simple native Tez
 application, i.e., WordCount, the `Hello, world!` application for Hadoop.
 
