@@ -44,6 +44,8 @@ public class HelloWorld extends Configured implements Tool {
     private static final String SUMMATION_VERTEX = "SummationVertex";
     private static final String OUTPUT = "Output";
     private static final int PARALLELISM = 1;
+    private static final boolean ENABLE_SPLIT_GROUPING = true;
+    private static final boolean GENERATE_SPLIT_IN_AM = true;
     private static final Logger LOGGER = LoggerFactory.getLogger(HelloWorld.class);
 
     public static class TokenProcessor extends SimpleProcessor {
@@ -119,8 +121,8 @@ public class HelloWorld extends Configured implements Tool {
     private DAG createDAG(String inputPath, String outputPath, TezConfiguration tezConf) {
         // Create the tokenizer vertex with the input data source and TextInputFormat
         DataSourceDescriptor dataSourceDescriptor = MRInput.createConfigBuilder(new Configuration(tezConf), TextInputFormat.class, inputPath)
-                .groupSplits(!isDisableSplitGrouping())
-                .generateSplitsInAM(!isGenerateSplitInClient())
+                .groupSplits(ENABLE_SPLIT_GROUPING)
+                .generateSplitsInAM(GENERATE_SPLIT_IN_AM)
                 .build();
         Vertex tokenizerVertex = Vertex.create(TOKENIZER_VERTEX, ProcessorDescriptor.create(TokenProcessor.class.getName()))
                 .addDataSource(INPUT, dataSourceDescriptor);
@@ -143,14 +145,6 @@ public class HelloWorld extends Configured implements Tool {
                 .addVertex(summationVertex)
                 .addEdge(edge);
         return dag;
-    }
-
-    private boolean isGenerateSplitInClient() {
-        return false;
-    }
-
-    private boolean isDisableSplitGrouping() {
-        return false;
     }
 
     public int runDAG(DAG dag, TezClient tezClient, TezConfiguration tezConf) throws TezException,
