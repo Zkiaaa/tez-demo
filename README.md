@@ -3,8 +3,7 @@
 The tez-helloword project provides code example for a very simple native Tez
 application, i.e., WordCount, the `Hello, world!` application for Hadoop.
 
-It is based on the [WordCount code of the Tez examples]
-(https://github.com/apache/tez/blob/master/tez-examples/src/main/java/org/apache/tez/examples/WordCount.java).
+It is based on the [WordCount code of the Tez examples](https://github.com/apache/tez/blob/master/tez-examples/src/main/java/org/apache/tez/examples/WordCount.java).
 The additional values are:
 - Simplified code
 - Unit tests
