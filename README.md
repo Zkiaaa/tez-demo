@@ -1,3 +1,6 @@
+
+[![Build Status](https://travis-ci.org/ouyi/tez-helloworld.svg?branch=master)](https://travis-ci.org/ouyi/tez-helloworld)
+
 # What is this about
 
 Apache Tez is a generalization and successor of the Hadoop MapReduce
