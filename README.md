@@ -3,12 +3,15 @@
 
 # What is this about
 
-Apache Tez is a generalization and successor of the Hadoop MapReduce
-implementation. Apache Pig and Hive have already switched to use Tez as the
-default execution engine.
+Apache Tez, the new execution engine of Apache Pig and Hive, is a
+generalization and successor of the Hadoop MapReduce framework. For
+data-processing problems, if Pig or Hive can do the job, there is normally no
+point to write the solution in _native_ Tez or MapReduce code. I did this
+project for my self education.
 
-The tez-helloword project provides code example for a very simple native Tez
-application, i.e., WordCount, the `Hello, world!` application for Hadoop.
+The tez-helloword project provides a working code example for a very simple
+_native_ Tez application, i.e., WordCount, the `Hello, world!` application for
+Hadoop.
 
 It is based on the [WordCount code of the Tez examples](https://github.com/apache/tez/blob/master/tez-examples/src/main/java/org/apache/tez/examples/WordCount.java).
 The additional values are:
@@ -17,7 +20,7 @@ The additional values are:
 - Gradle build scripts with minimal dependencies, and 
 - Instructions for running the application on Hadoop inside a Docker container
 
-The following steps require JDK and a working Docker installation.
+The following steps require JDK 8 (openjdk8 or oraclejdk8) and a working Docker installation.
 
 # How to build
 
