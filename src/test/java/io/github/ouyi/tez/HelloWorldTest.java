@@ -4,17 +4,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HelloWorldTest {
 
     @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("./build/" + HelloWorldTest.class.getSimpleName()));
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void run() throws Exception {
