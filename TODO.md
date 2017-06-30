@@ -1,3 +1,4 @@
 - Gradle plugin java vs java-library
 - Add README.md
 - Clean up variables
+- Get it running on EMR
