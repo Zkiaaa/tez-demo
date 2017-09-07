@@ -20,7 +20,7 @@ The additional values are:
 - Gradle build scripts with minimal dependencies, and 
 - Instructions for running the application on Hadoop inside a Docker container
 
-The following steps require JDK 8 (openjdk8 or oraclejdk8) and a working Docker installation.
+The following steps require JDK 8 (openjdk8 or oraclejdk8) and a working Docker installation (or HDP sandbox).
 
 # How to build
 
@@ -32,7 +32,7 @@ The following steps require JDK 8 (openjdk8 or oraclejdk8) and a working Docker 
 
 # How to run
 
-- Start the Docker container
+- Start the Docker container (or the HDP sandbox).
     ```
     docker run -P -it ouyi/hadoop-docker:install-tez /etc/bootstrap.sh -bash 
     ```
@@ -43,14 +43,22 @@ The following steps require JDK 8 (openjdk8 or oraclejdk8) and a working Docker 
     ```
 - Upload the files to HDFS
     ```
-    hadoop fs -copyFromLocal -f tez-helloworld.jar /apps/tez/
+    hadoop fs -copyFromLocal -f tez-helloworld.jar /tmp
     hadoop fs -copyFromLocal -f input.txt /tmp
     ```
 - Start the application
     ```
-    yarn jar tez-helloworld.jar io.github.ouyi.tez.HelloWorld /tmp/input.txt /tmp/output
+    yarn jar tez-helloworld.jar io.github.ouyi.tez.HelloWorld -Dtez.aux.uris=/tmp/tez-helloworld.jar /tmp/input.txt /tmp/output
     ```
 - Verify the results
+    ```
+    hadoop fs -cat /tmp/output/{*}
+    ```
+- Run the Pig script
+    ```
+    hadoop fs -rm -r /tmp/output && pig -x tez -p input=/tmp/input.txt -p output=/tmp/output wordcount.pig
+    ```
+- Verify the results again
     ```
     hadoop fs -cat /tmp/output/{*}
     ```
