@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/ouyi/tez-helloworld.svg?branch=master)](https://travis-ci.org/ouyi/tez-helloworld)
+[![Build Status](https://travis-ci.org/ouyi/tez-demo.svg?branch=master)](https://travis-ci.org/ouyi/tez-demo)
 
 # What is this about
 
